@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🔥 PokéWeb Battle</title>
+  <style>
+    body {
+      background: #111;
+      font-family: 'Courier New', monospace;
+      color: white;
+      margin: 0;
+      padding: 0;
+      text-align: center;
+    }
+
+    h1 {
+      color: orange;
+      margin-top: 20px;
+    }
+
+    .battle-container {
+      display: flex;
+      justify-content: space-around;
+      padding: 20px;
+    }
+
+    .character {
+      width: 40%;
+      border: 2px solid #444;
+      padding: 20px;
+      background: #222;
+      border-radius: 10px;
+    }
+
+    .sprite {
+      width: 100px;
+      height: 100px;
+      background: #444;
+      margin: 10px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    .hp-bar {
+      height: 20px;
+      background: red;
+      margin: 10px auto;
+      width: 100%;
+      border: 2px solid black;
+    }
+
+    .hp-inner {
+      height: 100%;
+      background: limegreen;
+      width: 100%;
+    }
+
+    .moves {
+      margin-top: 20px;
+    }
+
+    .moves button {
+      margin: 5px;
+      padding: 10px 20px;
+      background: #333;
+      color: white;
+      border: 2px solid #666;
+      cursor: pointer;
+    }
+
+    .log {
+      background: #000;
+      padding: 15px;
+      height: 180px;
+      overflow-y: auto;
+      margin: 20px;
+      border: 2px solid #444;
+      text-align: left;
+    }
+
+    .log p {
+      margin: 5px 0;
+    }
+
+    .level {
+      font-size: 0.9em;
+      color: #aaa;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🔥 PokéWeb Battle</h1>
+
+  <div class="battle-container">
+    <div class="character" id="player">
+      <div><strong>Charizard</strong> <span class="level" id="player-level">(Lv 5)</span></div>
+      <div class="sprite">🔥</div>
+      <div class="hp-bar"><div id="player-hp" class="hp-inner"></div></div>
+    </div>
+    <div class="character" id="enemy">
+      <div><strong id="enemy-name">Pidgey</strong></div>
+      <div class="sprite">👾</div>
+      <div class="hp-bar"><div id="enemy-hp" class="hp-inner"></div></div>
+    </div>
+  </div>
+
+  <div class="moves" id="moves">
+    <!-- Buttons will be added here -->
+  </div>
+
+  <div class="log" id="log"></div>
+
+  <script>
+    const player = {
+      name: "Charizard",
+      type: "Fire",
+      level: 5,
+      exp: 0,
+      nextLevelExp: 50,
+      maxHp: 120,
+      hp: 120,
+      moves: {
+        Flamethrower: { power: [25, 35], type: "Fire" },
+        Slash: { power: [15, 25], type: "Normal" },
+        Fly: { power: [20, 30], type: "Flying" },
+        Smokescreen: { power: [5, 10], type: "Normal" }
+      }
+    };
+
+    const enemy = {
+      name: "Pidgey",
+      type: "Flying",
+      maxHp: 100,
+      hp: 100,
+      moves: {
+        Gust: { power: [15, 25], type: "Flying" },
+        Peck: { power: [10, 20], type: "Flying" }
+      }
+    };
+
+    const typeChart = {
+      Fire: { Grass: 2.0, Water: 0.5, Fire: 0.5, Normal: 1.0 },
+      Flying: { Grass: 2.0, Electric: 0.5, Fire: 1.0 },
+      Normal: { Fire: 1.0, Electric: 1.0, Grass: 1.0 },
+    };
+
+    const log = document.getElementById("log");
+
+    function updateBars() {
+      document.getElementById("player-hp").style.width = (player.hp / player.maxHp) * 100 + "%";
+      document.getElementById("enemy-hp").style.width = (enemy.hp / enemy.maxHp) * 100 + "%";
+      document.getElementById("player-level").textContent = `(Lv ${player.level})`;
+    }
+
+    function logMessage(message) {
+      const p = document.createElement("p");
+      p.textContent = message;
+      log.appendChild(p);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function calculateDamage(attacker, defender, move) {
+      const base = Math.floor(Math.random() * (move.power[1] - move.power[0] + 1)) + move.power[0];
+      const effectiveness = typeChart[move.type]?.[defender.type] || 1.0;
+      const damage = Math.floor(base * effectiveness * (1 + 0.05 * attacker.level));
+      return { damage, effectiveness };
+    }
+
+    function disableButtons(disabled) {
+      document.querySelectorAll("#moves button").forEach(btn => btn.disabled = disabled);
+    }
+
+    function enemyTurn() {
+      const moveNames = Object.keys(enemy.moves);
+      const move = enemy.moves[moveNames[Math.floor(Math.random() * moveNames.length)]];
+      const { damage, effectiveness } = calculateDamage(enemy, player, move);
+      player.hp = Math.max(0, player.hp - damage);
+      logMessage(`Enemy used ${moveNames[0]}!`);
+      if (effectiveness > 1) logMessage("It's super effective!");
+      else if (effectiveness < 1) logMessage("It's not very effective...");
+      logMessage(`${player.name} lost ${damage} HP!`);
+      updateBars();
+      if (player.hp <= 0) {
+        logMessage("You lost the battle...");
+        disableButtons(true);
+      } else {
+        disableButtons(false);
+      }
+    }
+
+    function handlePlayerMove(moveName) {
+      disableButtons(true);
+      const move = player.moves[moveName];
+      const { damage, effectiveness } = calculateDamage(player, enemy, move);
+      enemy.hp = Math.max(0, enemy.hp - damage);
+      logMessage(`${player.name} used ${moveName}!`);
+      if (effectiveness > 1) logMessage("It's super effective!");
+      else if (effectiveness < 1) logMessage("It's not very effective...");
+      logMessage(`${enemy.name} lost ${damage} HP!`);
+      updateBars();
+
+      if (enemy.hp <= 0) {
+        logMessage(`${enemy.name} fainted! You win!`);
+        gainExp();
+        return;
+      }
+
+      setTimeout(enemyTurn, 1500);
+    }
+
+    function gainExp() {
+      const gained = Math.floor(Math.random() * 20 + 10);
+      logMessage(`You gained ${gained} EXP!`);
+      player.exp += gained;
+      while (player.exp >= player.nextLevelExp) {
+        player.exp -= player.nextLevelExp;
+        player.level++;
+        player.nextLevelExp = Math.floor(player.nextLevelExp * 1.5);
+        player.maxHp += 10;
+        player.hp = player.maxHp;
+        logMessage(`${player.name} leveled up to ${player.level}!`);
+      }
+      updateBars();
+      disableButtons(true);
+    }
+
+    function initGame() {
+      const moveContainer = document.getElementById("moves");
+      Object.keys(player.moves).forEach(move => {
+        const btn = document.createElement("button");
+        btn.textContent = move;
+        btn.onclick = () => handlePlayerMove(move);
+        moveContainer.appendChild(btn);
+      });
+
+      logMessage(`A wild ${enemy.name} appeared!`);
+      updateBars();
+    }
+
+    initGame();
+  </script>
+</body>
+</html>
